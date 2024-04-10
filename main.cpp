@@ -194,7 +194,7 @@ public:
 
             for (PCB& pcb : process_table) {
                 if (pcb.state == ProcessState::running) {
-                    cpu->context = pcb.context;
+                    *cpu->context = *pcb.context;
                     break;
                 }
             }
