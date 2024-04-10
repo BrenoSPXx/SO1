@@ -39,6 +39,40 @@ public:
         context(context_)
         {}
 
+    PCB(PCB&) = delete;
+    PCB& operator=(PCB&) = delete;
+
+    PCB(PCB&& other) {
+        pid = other.pid;
+        creation_time = other.creation_time;
+        start = other.start;
+        end = other.end;
+        duration = other.duration;
+        executed_time = other.executed_time;
+        static_priority = other.static_priority;
+        state = other.state;
+        context = other.context;
+
+        other.context = 0;
+    }
+    PCB& operator=(PCB&& other) {
+        delete context;
+
+        pid = other.pid;
+        creation_time = other.creation_time;
+        start = other.start;
+        end = other.end;
+        duration = other.duration;
+        executed_time = other.executed_time;
+        static_priority = other.static_priority;
+        state = other.state;
+        context = other.context;
+
+        other.context = 0;
+
+        return *this;
+    }
+
     int pid;
 
     int creation_time;
@@ -52,6 +86,10 @@ public:
 
     ProcessState state;
     CPUContext* context;
+
+    ~PCB() {
+        if (context) delete context;
+    }
 };
 
 class BaseScheduler {
@@ -142,6 +180,8 @@ public:
         time++;
     }
 
+    virtual CPUContext* new_context() = 0;
+
     ~CPU() { delete context; }
 };
 
@@ -155,7 +195,11 @@ public:
 
 class INE5412 : public CPU {
 public:
-    INE5412() : CPU(new INE5412Context) {}
+    INE5412() : CPU(new_context()) {}
+
+    virtual CPUContext* new_context() override {
+        return new INE5412Context;
+    }
 };
 
 class System {
@@ -167,7 +211,7 @@ public:
     std::vector<PCB> process_table;
     int next_pid = 1;
 
-    void add_process(int creation_time, int duration, int static_priority, CPUContext* context) {
+    void add_process(int creation_time, int duration, int static_priority) {
         process_table.emplace_back(
             next_pid++,
 
@@ -181,7 +225,7 @@ public:
             static_priority,
 
             ProcessState::not_created,
-            context
+            cpu->new_context()
         );
     }
 
@@ -216,16 +260,13 @@ int main() {
 
     INE5412 cpu;
     DumbScheduler scheduler;
-    std::vector<INE5412Context> contexts;
-
     System system(&cpu, &scheduler);
+
     for (ProcessParams* param : params) {
-        contexts.push_back(INE5412Context());
         system.add_process(
             param->get_creation_time(),
             param->get_duration(),
-            param->get_priority(),
-            &contexts.back()
+            param->get_priority()
         );
     }
     system.run();
