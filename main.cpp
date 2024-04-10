@@ -130,6 +130,11 @@ class CPU {
 public:
     CPU(CPUContext* context_) : time(0), context(context_) {}
 
+    CPU(CPU&) = delete;
+    CPU(CPU&&) = delete;
+    CPU& operator=(CPU&) = delete;
+    CPU& operator=(CPU&&) = delete;
+
     int time;
     CPUContext* context;
 
