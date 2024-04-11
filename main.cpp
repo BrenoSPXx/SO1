@@ -1,6 +1,10 @@
 #include <vector>
 #include <cstdint>
 #include <stdio.h>
+#include <cstring>
+
+#undef NDEBUG
+#include <cassert>
 
 #include "read_file.cc"
 
@@ -13,7 +17,17 @@ enum class ProcessState {
     terminated,
 };
 
-class CPUContext {};
+class CPUContext {
+public:
+    CPUContext() {}
+
+    CPUContext(CPUContext const&) = delete;
+    CPUContext(CPUContext&&) = delete;
+    virtual CPUContext& operator=(CPUContext const&) = 0;
+    virtual CPUContext& operator=(CPUContext&&) = 0;
+
+    virtual ~CPUContext() {}
+};
 
 class PCB {
 public:
@@ -39,8 +53,8 @@ public:
         context(context_)
         {}
 
-    PCB(PCB&) = delete;
-    PCB& operator=(PCB&) = delete;
+    PCB(PCB const&) = delete;
+    PCB& operator=(PCB const&) = delete;
 
     PCB(PCB&& other) {
         pid = other.pid;
@@ -112,28 +126,54 @@ public:
 };
 
 class CPU {
-public:
-    CPU(CPUContext* context_) : time(0), context(context_) {}
+private:
+    int time;
 
-    CPU(CPU&) = delete;
+public:
+    CPU() : time(0) {}
+
+    CPU(CPU const&) = delete;
     CPU(CPU&&) = delete;
-    CPU& operator=(CPU&) = delete;
+    CPU& operator=(CPU const&) = delete;
     CPU& operator=(CPU&&) = delete;
 
-    int time;
-    CPUContext* context;
-
-    void advance_time() {
+    virtual void run() {
         time++;
     }
 
-    virtual CPUContext* new_context() = 0;
+    int get_time() { return time; }
 
-    ~CPU() { delete context; }
+    virtual CPUContext* new_context() = 0;
+    virtual void set_context(CPUContext* context) = 0;
+    virtual CPUContext* get_context() = 0;
 };
 
 class INE5412Context : public CPUContext {
+private:
+    void _copy(CPUContext const& other_) {
+        assert(dynamic_cast<INE5412Context const*>(&other_));
+
+        INE5412Context const& other = (INE5412Context const&)other_;
+
+        memcpy(registers, other.registers, sizeof(registers));
+        sp = other.sp;
+        pc = other.pc;
+        st = other.st;
+    }
+
 public:
+    virtual CPUContext& operator=(CPUContext const& other) override {
+        _copy(other);
+        return *this;
+    }
+
+    virtual CPUContext& operator=(CPUContext&& other) override {
+        _copy(other);
+        return *this;
+    }
+
+    virtual ~INE5412Context() override {}
+
     uint64_t registers[6];
     uint64_t sp;
     uint64_t pc;
@@ -141,11 +181,22 @@ public:
 };
 
 class INE5412 : public CPU {
+private:
+    INE5412Context context;
+
 public:
-    INE5412() : CPU(new_context()) {}
+    INE5412() {}
 
     virtual CPUContext* new_context() override {
         return new INE5412Context;
+    }
+
+    virtual void set_context(CPUContext* other_context) override {
+        context = *other_context;
+    }
+
+    virtual CPUContext* get_context() override {
+        return &context;
     }
 };
 
@@ -183,66 +234,85 @@ public:
         }
         printf("\n");
 
-        // TODO: nao trocar de contexto se mesmo processo executando
-
+        int last_pid = -1;
         while (true) {
-            {
-                // update state before next_process
-                for (PCB& pcb : process_table) {
-                    if (pcb.creation_time == cpu->time) {
-                        pcb.state = ProcessState::ready;
-                    }
-                    if (pcb.state == ProcessState::running) {
-                        if (pcb.executed_time >= pcb.duration) {
-                            pcb.state = ProcessState::terminated;
-                        } else {
-                            pcb.state = ProcessState::ready;
-                        }
-                    }
-                }
-
-                int curr_pid = scheduler->next_process(process_table);
-                if (curr_pid < 0) break;
-
-                printf("%2d-%2d ", cpu->time, cpu->time+1);
-
-                for (PCB& pcb : process_table) {
-                    // update state after next_process
-                    if (pcb.pid == curr_pid) {
-                        pcb.state = ProcessState::running;
-                    }
-
-                    char const* text = 0;
-                    switch (pcb.state) {
-                    case ProcessState::not_created:
-                    case ProcessState::terminated: {
-                        text = "  ";
-                    } break;
-                    case ProcessState::running: {
-                        text = "##";
-                    } break;
-                    default: {
-                        text = "--";
-                    } break;
-                    }
-
-                    printf(" %s", text);
-
-                    if (pcb.state == ProcessState::running) {
-                        pcb.executed_time++;
-                    }
-                }
-                printf("\n");
-            }
+            ////////////////////
+            // update processes
+            ////////////////////
 
             for (PCB& pcb : process_table) {
-                if (pcb.state == ProcessState::running) {
-                    *cpu->context = *pcb.context;
-                    break;
+                switch (pcb.state) {
+                case ProcessState::not_created: {
+                    if (pcb.creation_time == cpu->get_time()) {
+                        pcb.state = ProcessState::ready;
+                    }
+                } break;
+                case ProcessState::running: {
+                    pcb.executed_time++;
+                    if (pcb.executed_time >= pcb.duration) {
+                        pcb.state = ProcessState::terminated;
+                    }
+                } break;
+                default: {
+                } break;
                 }
             }
 
-            cpu->advance_time();
+            ////////////////////
+            // get next process
+            ////////////////////
+
+            int curr_pid = scheduler->next_process(process_table);
+            if (curr_pid < 0) break;
+
+            ////////////////////
+            // change context
+            ////////////////////
+
+            CPUContext* last_context = cpu->get_context();
+
+            if (last_pid != curr_pid) {
+                for (PCB& pcb : process_table) {
+                    if (pcb.pid == curr_pid) {
+                        pcb.state = ProcessState::running;
+                        last_pid = curr_pid;
+                        cpu->set_context(pcb.context);
+                    } else if (pcb.state == ProcessState::running) {
+                        pcb.state = ProcessState::ready;
+                        *pcb.context = *last_context;
+                    }
+                }
+            }
+
+            ////////////////////
+            // print
+            ////////////////////
+
+            printf("%2d-%2d ", cpu->get_time(), cpu->get_time()+1);
+            for (PCB& pcb : process_table) {
+                char const* text = 0;
+                switch (pcb.state) {
+                case ProcessState::not_created:
+                case ProcessState::terminated: {
+                    text = "  ";
+                } break;
+                case ProcessState::running: {
+                    text = "##";
+                } break;
+                default: {
+                    text = "--";
+                } break;
+                }
+
+                printf(" %s", text);
+            }
+            printf("\n");
+
+            ////////////////////
+            // run cpu
+            ////////////////////
+
+            cpu->run();
         }
     }
 };
