@@ -1,0 +1,29 @@
+while (true) {
+    Verificar proximo processo
+    Se mudou processo em execucao, mudar contexto
+    Printar
+}
+
+O que fazer:
+{
+    felipe:
+    Vamos salvar no registrador 1 o pid e no 2 a CPU vai incrementar
+    Mudar `run` do `System`
+
+    breno:
+    Implementar os escalonadores
+
+    marco:
+    Turnaround time, tempo de espera, trocas de contexto
+
+    depois:
+    Parte chata (diagrama, relatorio, Makefile, ...)
+
+    talvez:
+    Dependendo da professora, fazer repeticao de processos
+}
+
+Perguntar:
+Executar quantas vezes os processos? Quando parar?
+Exemplo nao bate com a entrada
+Qual seria o tempo end de um processo periodico?
