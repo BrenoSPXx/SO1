@@ -147,7 +147,7 @@ public:
 
     virtual CPUContext* new_context() = 0;
     virtual void set_context(CPUContext* context) = 0;
-    virtual CPUContext* get_context() = 0;
+    virtual CPUContext const* get_context() = 0;
 };
 
 class INE5412Context : public CPUContext {
@@ -197,7 +197,7 @@ public:
         context = *other_context;
     }
 
-    virtual CPUContext* get_context() override {
+    virtual CPUContext const* get_context() override {
         return &context;
     }
 };
@@ -271,7 +271,7 @@ public:
             // change context
             ////////////////////
 
-            CPUContext* last_context = cpu->get_context();
+            CPUContext const* last_context = cpu->get_context();
 
             if (last_pid != curr_pid) {
                 for (PCB& pcb : process_table) {
