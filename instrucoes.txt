@@ -18,6 +18,7 @@ O que fazer:
 
     depois:
     Parte chata (diagrama, relatorio, Makefile, ...)
+    Valgrind
 
     talvez:
     Dependendo da professora, fazer repeticao de processos
