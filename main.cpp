@@ -94,59 +94,6 @@ public:
 
 class BaseScheduler {
 public:
-    bool execute(int time, std::vector<PCB>& process_table) {
-        // update state before next_process
-        for (PCB& pcb : process_table) {
-            if (pcb.creation_time == time) {
-                pcb.state = ProcessState::ready;
-            }
-            if (pcb.state == ProcessState::running) {
-                if (pcb.executed_time >= pcb.duration) {
-                    pcb.state = ProcessState::terminated;
-                } else {
-                    pcb.state = ProcessState::ready;
-                }
-            }
-        }
-
-        int curr_pid = next_process(process_table);
-        if (curr_pid < 0) return false;
-
-        printf("%2d-%2d ", time, time+1);
-
-        for (PCB& pcb : process_table) {
-            // update state after next_process
-            if (pcb.pid == curr_pid) {
-                pcb.state = ProcessState::running;
-            }
-
-            char const* text = 0;
-            switch (pcb.state) {
-            case ProcessState::not_created:
-            case ProcessState::terminated: {
-                text = "  ";
-            } break;
-            case ProcessState::running: {
-                text = "##";
-            } break;
-            default: {
-                text = "--";
-            } break;
-            }
-
-            printf(" %s", text);
-
-            if (pcb.state == ProcessState::running) {
-                pcb.executed_time++;
-            }
-        }
-        printf("\n");
-
-        time++;
-
-        return true;
-    }
-
     virtual int next_process(std::vector<PCB>& process_table) = 0;
 };
 
@@ -236,9 +183,56 @@ public:
         }
         printf("\n");
 
+        // TODO: nao trocar de contexto se mesmo processo executando
+
         while (true) {
-            if (!scheduler->execute(cpu->time, process_table)) {
-                break;
+            {
+                // update state before next_process
+                for (PCB& pcb : process_table) {
+                    if (pcb.creation_time == cpu->time) {
+                        pcb.state = ProcessState::ready;
+                    }
+                    if (pcb.state == ProcessState::running) {
+                        if (pcb.executed_time >= pcb.duration) {
+                            pcb.state = ProcessState::terminated;
+                        } else {
+                            pcb.state = ProcessState::ready;
+                        }
+                    }
+                }
+
+                int curr_pid = scheduler->next_process(process_table);
+                if (curr_pid < 0) break;
+
+                printf("%2d-%2d ", cpu->time, cpu->time+1);
+
+                for (PCB& pcb : process_table) {
+                    // update state after next_process
+                    if (pcb.pid == curr_pid) {
+                        pcb.state = ProcessState::running;
+                    }
+
+                    char const* text = 0;
+                    switch (pcb.state) {
+                    case ProcessState::not_created:
+                    case ProcessState::terminated: {
+                        text = "  ";
+                    } break;
+                    case ProcessState::running: {
+                        text = "##";
+                    } break;
+                    default: {
+                        text = "--";
+                    } break;
+                    }
+
+                    printf(" %s", text);
+
+                    if (pcb.state == ProcessState::running) {
+                        pcb.executed_time++;
+                    }
+                }
+                printf("\n");
             }
 
             for (PCB& pcb : process_table) {
@@ -258,6 +252,8 @@ int main() {
     f.read_file();
     vector<ProcessParams*> const& params = f.get_processes_params();
 
+    // TODO: usar new + delete em tudo?
+
     INE5412 cpu;
     DumbScheduler scheduler;
     System system(&cpu, &scheduler);
@@ -271,3 +267,4 @@ int main() {
     }
     system.run();
 }
+
