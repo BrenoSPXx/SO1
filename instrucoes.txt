@@ -6,6 +6,9 @@ while (true) {
 
 O que fazer:
 {
+    a determinar:
+    Considerar periodo e deadline
+
     felipe:
     Vamos salvar no registrador 1 o pid e no 2 a CPU vai incrementar
     Mudar `run` do `System`
