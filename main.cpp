@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <stdio.h>
 #include <cstring>
+#include <unistd.h>
 
 #undef NDEBUG
 #include <cassert>
@@ -138,6 +139,7 @@ public:
     CPU& operator=(CPU&&) = delete;
 
     virtual void run() {
+        sleep(1);
         time++;
     }
 
