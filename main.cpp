@@ -24,8 +24,10 @@ public:
 
     CPUContext(CPUContext const&) = delete;
     CPUContext(CPUContext&&) = delete;
-    virtual CPUContext& operator=(CPUContext const&) = 0;
-    virtual CPUContext& operator=(CPUContext&&) = 0;
+    CPUContext& operator=(CPUContext const&) = delete;
+    CPUContext& operator=(CPUContext&&) = delete;
+
+    virtual void copy(CPUContext const*) = 0;
 
     virtual ~CPUContext() {}
 };
@@ -54,40 +56,6 @@ public:
         context(context_)
         {}
 
-    PCB(PCB const&) = delete;
-    PCB& operator=(PCB const&) = delete;
-
-    PCB(PCB&& other) {
-        pid = other.pid;
-        creation_time = other.creation_time;
-        start = other.start;
-        end = other.end;
-        duration = other.duration;
-        executed_time = other.executed_time;
-        static_priority = other.static_priority;
-        state = other.state;
-        context = other.context;
-
-        other.context = 0;
-    }
-    PCB& operator=(PCB&& other) {
-        delete context;
-
-        pid = other.pid;
-        creation_time = other.creation_time;
-        start = other.start;
-        end = other.end;
-        duration = other.duration;
-        executed_time = other.executed_time;
-        static_priority = other.static_priority;
-        state = other.state;
-        context = other.context;
-
-        other.context = 0;
-
-        return *this;
-    }
-
     int pid;
 
     int creation_time;
@@ -101,10 +69,6 @@ public:
 
     ProcessState state;
     CPUContext* context;
-
-    ~PCB() {
-        if (context) delete context;
-    }
 };
 
 class BaseScheduler {
@@ -151,27 +115,16 @@ public:
 };
 
 class INE5412Context : public CPUContext {
-private:
-    void _copy(CPUContext const& other_) {
-        assert(dynamic_cast<INE5412Context const*>(&other_));
+public:
+    virtual void copy(CPUContext const* other_) override {
+        assert(dynamic_cast<INE5412Context const*>(other_));
 
-        INE5412Context const& other = (INE5412Context const&)other_;
+        INE5412Context const& other = (INE5412Context const&)*other_;
 
         memcpy(registers, other.registers, sizeof(registers));
         sp = other.sp;
         pc = other.pc;
         st = other.st;
-    }
-
-public:
-    virtual CPUContext& operator=(CPUContext const& other) override {
-        _copy(other);
-        return *this;
-    }
-
-    virtual CPUContext& operator=(CPUContext&& other) override {
-        _copy(other);
-        return *this;
     }
 
     virtual ~INE5412Context() override {}
@@ -194,7 +147,7 @@ public:
     }
 
     virtual void set_context(CPUContext* other_context) override {
-        context = *other_context;
+        context.copy(other_context);
     }
 
     virtual CPUContext const* get_context() override {
@@ -281,7 +234,7 @@ public:
                         cpu->set_context(pcb.context);
                     } else if (pcb.state == ProcessState::running) {
                         pcb.state = ProcessState::ready;
-                        *pcb.context = *last_context;
+                        pcb.context->copy(last_context);
                     }
                 }
             }
@@ -317,14 +270,18 @@ public:
             cpu->run();
         }
     }
+
+    ~System() {
+        for (PCB& pcb : process_table) {
+            delete pcb.context;
+        }
+    }
 };
 
 int main() {
     File f;
     f.read_file();
     vector<ProcessParams*> const& params = f.get_processes_params();
-
-    // TODO: usar new + delete em tudo?
 
     INE5412 cpu;
     DumbScheduler scheduler;
