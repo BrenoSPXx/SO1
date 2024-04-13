@@ -189,27 +189,24 @@ public:
         }
         printf("\n");
 
-        int last_pid = -1;
+        PCB* process_running = 0;
         while (true) {
             ////////////////////
             // update processes
             ////////////////////
 
+            if (process_running) {
+                process_running->executed_time++;
+                if (process_running->executed_time >= process_running->duration) {
+                    process_running->state = ProcessState::terminated;
+                }
+            }
+
             for (PCB& pcb : process_table) {
-                switch (pcb.state) {
-                case ProcessState::not_created: {
-                    if (pcb.creation_time == cpu->get_time()) {
-                        pcb.state = ProcessState::ready;
-                    }
-                } break;
-                case ProcessState::running: {
-                    pcb.executed_time++;
-                    if (pcb.executed_time >= pcb.duration) {
-                        pcb.state = ProcessState::terminated;
-                    }
-                } break;
-                default: {
-                } break;
+                if (pcb.state == ProcessState::not_created
+                    && pcb.creation_time == cpu->get_time()
+                ) {
+                    pcb.state = ProcessState::ready;
                 }
             }
 
@@ -224,17 +221,17 @@ public:
             // change context
             ////////////////////
 
-            CPUContext const* last_context = cpu->get_context();
+            if (!process_running || process_running->pid != curr_pid) {
+                if (process_running) {
+                    process_running->context->copy(cpu->get_context());
+                }
 
-            if (last_pid != curr_pid) {
                 for (PCB& pcb : process_table) {
                     if (pcb.pid == curr_pid) {
                         pcb.state = ProcessState::running;
-                        last_pid = curr_pid;
                         cpu->set_context(pcb.context);
-                    } else if (pcb.state == ProcessState::running) {
-                        pcb.state = ProcessState::ready;
-                        pcb.context->copy(last_context);
+                        process_running = &pcb;
+                        break;
                     }
                 }
             }
