@@ -5,87 +5,43 @@
 
 using namespace std;
 
-class ProcessParams
-{
-public:
-	ProcessParams(int c, int d, int p) { 
-		creation_time = c;
-		duration = d;
-		priority = p;
-	}
-
-    int get_creation_time() {
-        return creation_time;
-    }
-
-    int get_duration() {
-        return duration;
-    }
-
-    int get_priority() {
-        return priority;
-    }
-
-	friend ostream &operator<<(ostream& os, const ProcessParams& p) {
-		os << "Creation time = " << p.creation_time << " duration = " << p.duration << " priority = " << p.priority << endl;
-		return os;
-	}
-	
-private:	
-	int creation_time;
-	int duration; //seconds
-	int priority;
+struct ProcessParams {
+    int creation_time;
+    int duration;
+    int deadline;
+    int period;
+    int static_priority;
 };
 
 class File
 {
-
 public:
 	File() {
 		myfile.open("entrada.txt");
 		if (!myfile.is_open()) {
-			cout << "Erro ao abrir o arquivo!\n";
+			cout << "Erro ao abrir o arquivo!" << endl;
 		}
 	}
 	
-	void read_file() {
-	
-		int a, b, c;
-		
+	std::vector<ProcessParams> read_file() {
 		if (!myfile.is_open()) {
 			cout << "Arquivo não está aberto!" << endl;
 		}
-		
-		while (myfile >> a >> b >> c) {
-			ProcessParams *p = new ProcessParams(a, b, c);
-			processes.push_back(p);
-		}
 
-		cout << "Quantidade de processos lidos do arquivo: " << processes.size() << endl;
-	}
+        std::vector<ProcessParams> process_params;
+        while (true) {
+            int creation_time, duration, deadline, period, static_priority;
+            myfile >> creation_time >> duration >> deadline >> period >> static_priority;
+            if (!myfile) break;
+            process_params.push_back({creation_time, duration, deadline, period, static_priority});
+        }
 
-    vector<ProcessParams*> const& get_processes_params() {
-        return processes;
-    }
+		cout << "Quantidade de processos lidos do arquivo: " << process_params.size() << endl;
 
-	void print_processes_params() {
-		vector<ProcessParams *>::iterator iter = processes.begin();
-
-		for(iter; iter < processes.end(); iter++) {
-			ProcessParams *p = *iter;
-			cout << *p;
-		}
-	}
-
-	~File() {
-		for(int i = 0; i < processes.size() ; i++) {
-			ProcessParams *p = processes[i];
-			delete p;
-		}
+        return process_params;
 	}
 
 private:
 	ifstream myfile; 
-	vector<ProcessParams *> processes;
 };
 

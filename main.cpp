@@ -10,11 +10,9 @@
 #include "read_file.cc"
 
 enum class ProcessState {
-    not_created,
     created,
     ready,
     running,
-    blocked,
     terminated,
 };
 
@@ -32,40 +30,18 @@ public:
     virtual ~CPUContext() {}
 };
 
-class PCB {
-public:
-    PCB(
-        int pid_,
-        int creation_time_,
-        int start_,
-        int end_,
-        int duration_,
-        int executed_time_,
-        int static_priority_,
-        ProcessState state_,
-        CPUContext* context_
-    ) :
-        pid(pid_),
-        creation_time(creation_time_),
-        start(start_),
-        end(end_),
-        duration(duration_),
-        executed_time(executed_time_),
-        static_priority(static_priority_),
-        state(state_),
-        context(context_)
-        {}
-
+struct PCB {
     int pid;
 
-    int creation_time;
-    int start;
-    int end;
-
+    int next_creation_time;
     int duration;
-    int executed_time;
-
+    int period;
+    int deadline;
     int static_priority;
+
+    bool first_instance;
+    int executed_cycles;
+    int executed_instances;
 
     ProcessState state;
     CPUContext* context;
@@ -80,9 +56,7 @@ class DumbScheduler : public BaseScheduler {
 public:
     virtual int next_process(std::vector<PCB>& process_table) override {
         for (PCB& pcb : process_table) {
-            if (   pcb.state != ProcessState::not_created 
-                && pcb.state != ProcessState::terminated
-            ) {
+            if (pcb.state == ProcessState::ready || pcb.state == ProcessState::running) {
                 return pcb.pid;
             }
         }
@@ -164,22 +138,17 @@ public:
     std::vector<PCB> process_table;
     int next_pid = 1;
 
-    void add_process(int creation_time, int duration, int static_priority) {
-        process_table.emplace_back(
+    void add_process(int creation_time, int duration, int period, int deadline, int static_priority) {
+        process_table.push_back({
             next_pid++,
 
-            creation_time,
-            -1,
-            -1,
+            creation_time, duration, period, deadline, static_priority,
 
-            duration,
-            0,
+            true, 0, 0,
 
-            static_priority,
-
-            ProcessState::not_created,
+            ProcessState::created,
             cpu->new_context()
-        );
+        });
     }
 
     void run() {
@@ -189,33 +158,75 @@ public:
         }
         printf("\n");
 
+        constexpr int total_executed_instances_per_process = 2;
+
         PCB* process_running = 0;
         while (true) {
             ////////////////////
             // update processes
             ////////////////////
 
-            if (process_running) {
-                process_running->executed_time++;
-                if (process_running->executed_time >= process_running->duration) {
-                    process_running->state = ProcessState::terminated;
+            for (PCB& pcb : process_table) {
+                // It could happen the following state change in a single time:
+                //   running->terminated->created->ready
+                // That's 3 state changes. For safety, the loop is until 5
+                for (int i = 0; i < 5; i++) {
+                    int deadline_timepoint = 
+                        pcb.next_creation_time
+                        - pcb.period
+                        + pcb.deadline;
+
+                    if (pcb.state == ProcessState::created) {
+                        if (cpu->get_time() >= pcb.next_creation_time) {
+                            pcb.state = ProcessState::ready;
+                            pcb.next_creation_time += pcb.period;
+                        }
+                    } else if (
+                           pcb.state == ProcessState::ready
+                        || pcb.state == ProcessState::running
+                    ) {
+                        if (pcb.executed_cycles >= pcb.duration) {
+                            pcb.executed_instances++;
+                            pcb.executed_cycles = 0;
+                            pcb.state = ProcessState::terminated;
+                        } else if (cpu->get_time() >= deadline_timepoint) {
+                            pcb.executed_instances++;
+                            pcb.executed_cycles = 0;
+                            pcb.state = ProcessState::created;
+                        }
+                    } else if (pcb.state == ProcessState::terminated) {
+                        if (cpu->get_time() >= deadline_timepoint) {
+                            pcb.state = ProcessState::created;
+                        }
+                    }
                 }
             }
 
+            ///////////////////////////////////
+            // check if all instances were run
+            ///////////////////////////////////
+
+            bool ran_all_instances = true;
             for (PCB& pcb : process_table) {
-                if (pcb.state == ProcessState::not_created
-                    && pcb.creation_time == cpu->get_time()
-                ) {
-                    pcb.state = ProcessState::ready;
+                if (pcb.executed_instances < total_executed_instances_per_process) {
+                    ran_all_instances = false;
+                    break;
                 }
             }
+
+            if (ran_all_instances) {
+                for (PCB& pcb : process_table) {
+                    pcb.state = ProcessState::terminated;
+                }
+                return;
+            }
+
 
             ////////////////////
             // get next process
             ////////////////////
 
             int curr_pid = scheduler->next_process(process_table);
-            if (curr_pid < 0) break;
 
             ////////////////////
             // change context
@@ -223,18 +234,21 @@ public:
 
             if (!process_running || process_running->pid != curr_pid) {
                 if (process_running) {
+                    if (process_running->state == ProcessState::running) {
+                        process_running->state = ProcessState::ready;
+                    }
                     process_running->context->copy(cpu->get_context());
                 }
 
                 for (PCB& pcb : process_table) {
                     if (pcb.pid == curr_pid) {
-                        pcb.state = ProcessState::running;
                         cpu->set_context(pcb.context);
                         process_running = &pcb;
                         break;
                     }
                 }
             }
+            if (process_running) process_running->state = ProcessState::running;
 
             ////////////////////
             // print
@@ -244,7 +258,7 @@ public:
             for (PCB& pcb : process_table) {
                 char const* text = 0;
                 switch (pcb.state) {
-                case ProcessState::not_created:
+                case ProcessState::created:
                 case ProcessState::terminated: {
                     text = "  ";
                 } break;
@@ -259,12 +273,16 @@ public:
                 printf(" %s", text);
             }
             printf("\n");
+            fflush(stdout);
 
             ////////////////////
             // run cpu
             ////////////////////
 
             cpu->run();
+
+            // update running process
+            if (process_running) process_running->executed_cycles++;
         }
     }
 
@@ -277,18 +295,19 @@ public:
 
 int main() {
     File f;
-    f.read_file();
-    vector<ProcessParams*> const& params = f.get_processes_params();
+    vector<ProcessParams> params = f.read_file();
 
     INE5412 cpu;
     DumbScheduler scheduler;
     System system(&cpu, &scheduler);
 
-    for (ProcessParams* param : params) {
+    for (ProcessParams& param : params) {
         system.add_process(
-            param->get_creation_time(),
-            param->get_duration(),
-            param->get_priority()
+            param.creation_time,
+            param.duration,
+            param.deadline,
+            param.period,
+            param.static_priority
         );
     }
     system.run();
