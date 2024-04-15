@@ -25,6 +25,7 @@ public:
     CPUContext& operator=(CPUContext const&) = delete;
     CPUContext& operator=(CPUContext&&) = delete;
 
+    virtual void set_register(int value) = 0;
     virtual void copy(CPUContext const*) = 0;
 
     virtual ~CPUContext() {}
@@ -86,7 +87,17 @@ public:
 };
 
 class INE5412Context : public CPUContext {
+    friend class INE5412;
+
+private:
+    uint64_t registers[6]{};
+    uint64_t sp{};
+    uint64_t pc{};
+    uint64_t st{};
+
 public:
+    INE5412Context() : registers{}, sp{}, pc{}, st{} {}
+
     virtual void copy(CPUContext const* other_) override {
         assert(dynamic_cast<INE5412Context const*>(other_));
 
@@ -98,12 +109,11 @@ public:
         st = other.st;
     }
 
-    virtual ~INE5412Context() override {}
+    virtual void set_register(int value) override {
+        registers[0] = value;
+    }
 
-    uint64_t registers[6];
-    uint64_t sp;
-    uint64_t pc;
-    uint64_t st;
+    virtual ~INE5412Context() override {}
 };
 
 class INE5412 : public CPU {
@@ -112,6 +122,11 @@ private:
 
 public:
     INE5412() {}
+
+    virtual void run() override {
+        context.registers[1]++;
+        CPU::run();
+    }
 
     virtual CPUContext* new_context() override {
         return new INE5412Context;
@@ -194,7 +209,7 @@ public:
 
             for (PeriodicProcess& process : periodic_processes) {
                 if (cpu->get_time() >= process.next_creation_time) {
-                    process_table.push_back({
+                    PCB new_pcb = {
                         process.pid,
 
                         process.next_creation_time, process.duration, process.period, process.deadline, process.static_priority,
@@ -203,7 +218,11 @@ public:
 
                         ProcessState::ready,
                         cpu->new_context()
-                    });
+                    };
+
+                    new_pcb.context->set_register(new_pcb.pid);
+
+                    process_table.push_back(new_pcb);
                     process.next_creation_time += process.period;
                 }
             }
