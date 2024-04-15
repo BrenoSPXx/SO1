@@ -14,7 +14,6 @@
 enum class ProcessState {
     ready,
     running,
-    none,
 };
 
 class CPUContext {
@@ -270,25 +269,28 @@ public:
 
             printf("%2d-%2d ", cpu->get_time(), cpu->get_time()+1);
             for (PeriodicProcess& process : periodic_processes) {
-                ProcessState state = ProcessState::none;
+                bool found = false;
+                ProcessState state;
                 for (PCB& pcb : process_table) {
                     if (pcb.pid == process.pid) {
                         state = pcb.state;
+                        found = true;
                         break;
                     }
                 }
 
                 char const* text = 0;
-                switch (state) {
-                case ProcessState::none: {
+                if (found) {
+                    switch (state) {
+                    case ProcessState::running: {
+                        text = "##";
+                    } break;
+                    case ProcessState::ready: {
+                        text = "--";
+                    } break;
+                    }
+                } else {
                     text = "  ";
-                } break;
-                case ProcessState::running: {
-                    text = "##";
-                } break;
-                case ProcessState::ready: {
-                    text = "--";
-                } break;
                 }
 
                 printf(" %s", text);
