@@ -8,8 +8,8 @@ using namespace std;
 struct ProcessParams {
     int creation_time;
     int duration;
-    int deadline;
     int period;
+    int deadline;
     int static_priority;
 };
 
