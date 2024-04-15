@@ -4,16 +4,17 @@
 #include <cstring>
 #include <unistd.h>
 
+// TODO: delete
 #undef NDEBUG
 #include <cassert>
+#include <algorithm>
 
 #include "read_file.cc"
 
 enum class ProcessState {
-    created,
     ready,
     running,
-    terminated,
+    none,
 };
 
 class CPUContext {
@@ -33,15 +34,13 @@ public:
 struct PCB {
     int pid;
 
-    int next_creation_time;
+    int creation_time;
     int duration;
     int period;
     int deadline;
     int static_priority;
 
-    bool first_instance;
     int executed_cycles;
-    int executed_instances;
 
     ProcessState state;
     CPUContext* context;
@@ -131,74 +130,83 @@ public:
 
 class System {
 public:
+    struct PeriodicProcess {
+        int pid;
+
+        int next_creation_time;
+        int duration;
+        int period;
+        int deadline;
+        int static_priority;
+
+        int executed_instances;
+    };
+
     System(CPU* cpu_, BaseScheduler* scheduler_) : cpu(cpu_), scheduler(scheduler_) {}
 
     CPU* cpu;
     BaseScheduler* scheduler;
+    std::vector<PeriodicProcess> periodic_processes;
     std::vector<PCB> process_table;
     int next_pid = 1;
 
-    void add_process(int creation_time, int duration, int period, int deadline, int static_priority) {
-        process_table.push_back({
-            next_pid++,
-
-            creation_time, duration, period, deadline, static_priority,
-
-            true, 0, 0,
-
-            ProcessState::created,
-            cpu->new_context()
-        });
+    void add_periodic_process(int creation_time, int duration, int period, int deadline, int static_priority) {
+        periodic_processes.push_back({next_pid, creation_time, duration, period, deadline, static_priority, 0});
+        next_pid++;
     }
 
     void run() {
         printf("tempo ");
-        for (PCB& pcb : process_table) {
-            printf(" P%d", pcb.pid);
+        for (PeriodicProcess process: periodic_processes) {
+            printf(" P%d", process.pid);
         }
         printf("\n");
 
         constexpr int total_executed_instances_per_process = 2;
 
-        PCB* process_running = 0;
         while (true) {
-            ////////////////////
-            // update processes
-            ////////////////////
+            /////////////////////////////
+            // stop processes
+            /////////////////////////////
 
-            for (PCB& pcb : process_table) {
-                // It could happen the following state change in a single time:
-                //   running->terminated->created->ready
-                // That's 3 state changes. For safety, the loop is until 5
-                for (int i = 0; i < 5; i++) {
-                    int deadline_timepoint = 
-                        pcb.next_creation_time
-                        - pcb.period
-                        + pcb.deadline;
+            {
+                std::vector<PCB> new_process_table;
+                for (PCB& pcb : process_table) {
+                    bool finished = pcb.executed_cycles >= pcb.duration;
+                    bool reached_deadline = cpu->get_time() >= (pcb.creation_time + pcb.deadline);
 
-                    if (pcb.state == ProcessState::created) {
-                        if (cpu->get_time() >= pcb.next_creation_time) {
-                            pcb.state = ProcessState::ready;
-                            pcb.next_creation_time += pcb.period;
+                    if (finished || reached_deadline) {
+                        for (PeriodicProcess& process : periodic_processes) {
+                            if (process.pid == pcb.pid) {
+                                process.executed_instances++;
+                                break;
+                            }
                         }
-                    } else if (
-                           pcb.state == ProcessState::ready
-                        || pcb.state == ProcessState::running
-                    ) {
-                        if (pcb.executed_cycles >= pcb.duration) {
-                            pcb.executed_instances++;
-                            pcb.executed_cycles = 0;
-                            pcb.state = ProcessState::terminated;
-                        } else if (cpu->get_time() >= deadline_timepoint) {
-                            pcb.executed_instances++;
-                            pcb.executed_cycles = 0;
-                            pcb.state = ProcessState::created;
-                        }
-                    } else if (pcb.state == ProcessState::terminated) {
-                        if (cpu->get_time() >= deadline_timepoint) {
-                            pcb.state = ProcessState::created;
-                        }
+                        delete pcb.context;
+                    } else {
+                        new_process_table.push_back(pcb);
                     }
+                }
+                process_table = move(new_process_table);
+            }
+
+            /////////////////////////////
+            // create periodic processes
+            /////////////////////////////
+
+            for (PeriodicProcess& process : periodic_processes) {
+                if (cpu->get_time() >= process.next_creation_time) {
+                    process_table.push_back({
+                        process.pid,
+
+                        process.next_creation_time, process.duration, process.period, process.deadline, process.static_priority,
+
+                        0, 
+
+                        ProcessState::ready,
+                        cpu->new_context()
+                    });
+                    process.next_creation_time += process.period;
                 }
             }
 
@@ -207,20 +215,32 @@ public:
             ///////////////////////////////////
 
             bool ran_all_instances = true;
-            for (PCB& pcb : process_table) {
-                if (pcb.executed_instances < total_executed_instances_per_process) {
+            for (PeriodicProcess& process : periodic_processes) {
+                if (process.executed_instances < total_executed_instances_per_process) {
                     ran_all_instances = false;
                     break;
                 }
             }
 
             if (ran_all_instances) {
-                for (PCB& pcb : process_table) {
-                    pcb.state = ProcessState::terminated;
-                }
-                return;
+                break;
             }
 
+            // TODO: delete
+            std::sort(process_table.begin(), process_table.end(),
+                [&](PCB& a, PCB& b) {
+                    return a.pid < b.pid;
+                }
+            );
+
+            /////////////////////////////
+            // get last running process
+            /////////////////////////////
+
+            PCB* last_running_process = 0;
+            for (PCB& pcb : process_table) {
+                if (pcb.state == ProcessState::running) last_running_process = &pcb;
+            }
 
             ////////////////////
             // get next process
@@ -232,40 +252,49 @@ public:
             // change context
             ////////////////////
 
-            if (!process_running || process_running->pid != curr_pid) {
-                if (process_running) {
-                    if (process_running->state == ProcessState::running) {
-                        process_running->state = ProcessState::ready;
-                    }
-                    process_running->context->copy(cpu->get_context());
+            PCB* curr_running_process = last_running_process;
+            if (!last_running_process || last_running_process->pid != curr_pid) {
+                if (last_running_process) {
+                    last_running_process->context->copy(cpu->get_context());
+
+                    last_running_process->state = ProcessState::ready;
                 }
 
                 for (PCB& pcb : process_table) {
                     if (pcb.pid == curr_pid) {
                         cpu->set_context(pcb.context);
-                        process_running = &pcb;
+
+                        pcb.state = ProcessState::running;
+                        curr_running_process = &pcb;
+
                         break;
                     }
                 }
             }
-            if (process_running) process_running->state = ProcessState::running;
 
             ////////////////////
             // print
             ////////////////////
 
             printf("%2d-%2d ", cpu->get_time(), cpu->get_time()+1);
-            for (PCB& pcb : process_table) {
+            for (PeriodicProcess& process : periodic_processes) {
+                ProcessState state = ProcessState::none;
+                for (PCB& pcb : process_table) {
+                    if (pcb.pid == process.pid) {
+                        state = pcb.state;
+                        break;
+                    }
+                }
+
                 char const* text = 0;
-                switch (pcb.state) {
-                case ProcessState::created:
-                case ProcessState::terminated: {
+                switch (state) {
+                case ProcessState::none: {
                     text = "  ";
                 } break;
                 case ProcessState::running: {
                     text = "##";
                 } break;
-                default: {
+                case ProcessState::ready: {
                     text = "--";
                 } break;
                 }
@@ -281,8 +310,10 @@ public:
 
             cpu->run();
 
+            ///////////////////////////
             // update running process
-            if (process_running) process_running->executed_cycles++;
+            ///////////////////////////
+            if (curr_running_process) curr_running_process->executed_cycles++;
         }
     }
 
@@ -302,7 +333,7 @@ int main() {
     System system(&cpu, &scheduler);
 
     for (ProcessParams& param : params) {
-        system.add_process(
+        system.add_periodic_process(
             param.creation_time,
             param.duration,
             param.period,
