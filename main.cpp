@@ -54,12 +54,11 @@ public:
 class DumbScheduler : public BaseScheduler {
 public:
     virtual int next_process(std::vector<PCB>& process_table) override {
+        int min_pid = -1;
         for (PCB& pcb : process_table) {
-            if (pcb.state == ProcessState::ready || pcb.state == ProcessState::running) {
-                return pcb.pid;
-            }
+            if (min_pid == -1 || pcb.pid < min_pid) min_pid = pcb.pid;
         }
-        return -1;
+        return min_pid;
     }
 };
 
@@ -225,13 +224,6 @@ public:
             if (ran_all_instances) {
                 break;
             }
-
-            // TODO: delete
-            std::sort(process_table.begin(), process_table.end(),
-                [&](PCB& a, PCB& b) {
-                    return a.pid < b.pid;
-                }
-            );
 
             /////////////////////////////
             // get last running process
