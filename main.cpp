@@ -305,8 +305,8 @@ int main() {
         system.add_process(
             param.creation_time,
             param.duration,
-            param.deadline,
             param.period,
+            param.deadline,
             param.static_priority
         );
     }

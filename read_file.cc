@@ -30,10 +30,10 @@ public:
 
         std::vector<ProcessParams> process_params;
         while (true) {
-            int creation_time, duration, deadline, period, static_priority;
-            myfile >> creation_time >> duration >> deadline >> period >> static_priority;
+            int creation_time, duration, period, deadline, static_priority;
+            myfile >> creation_time >> duration >> period >> deadline >> static_priority;
             if (!myfile) break;
-            process_params.push_back({creation_time, duration, deadline, period, static_priority});
+            process_params.push_back({creation_time, duration, period, deadline, static_priority});
         }
 
 		cout << "Quantidade de processos lidos do arquivo: " << process_params.size() << endl;
