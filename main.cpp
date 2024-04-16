@@ -175,7 +175,7 @@ public:
 };
 
 class System {
-public:
+private:
     struct PeriodicProcess {
         int pid;
 
@@ -188,13 +188,14 @@ public:
         int executed_instances;
     };
 
-    System(CPU* cpu_, BaseScheduler* scheduler_) : cpu(cpu_), scheduler(scheduler_) {}
-
     CPU* cpu;
     BaseScheduler* scheduler;
     std::vector<PeriodicProcess> periodic_processes;
     std::vector<PCB> process_table;
     int next_pid = 1;
+
+public:
+    System(CPU* cpu_, BaseScheduler* scheduler_) : cpu(cpu_), scheduler(scheduler_) {}
 
     void add_periodic_process(int creation_time, int duration, int period, int deadline, int static_priority) {
         periodic_processes.push_back({next_pid, creation_time, duration, period, deadline, static_priority, 0});
