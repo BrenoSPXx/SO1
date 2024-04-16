@@ -8,6 +8,7 @@
 #undef NDEBUG
 #include <cassert>
 #include <algorithm>
+#include <climits>
 
 #include "read_file.cc"
 
@@ -57,6 +58,38 @@ public:
         int min_pid = -1;
         for (PCB& pcb : process_table) {
             if (min_pid == -1 || pcb.pid < min_pid) min_pid = pcb.pid;
+        }
+        return min_pid;
+    }
+};
+
+class RateMonotonicScheduler : public BaseScheduler {
+public:
+    virtual int next_process(std::vector<PCB>& process_table) override {
+        int min_period = INT_MAX;
+        int min_pid = -1;
+
+        for (PCB& pcb: process_table) {
+            if (pcb.period < min_period) {
+                min_period = pcb.period;
+                min_pid = pcb.pid;
+            }
+        }
+        return min_pid;
+    }
+};
+
+class EarliestDeadlineFirstScheduler : public BaseScheduler {
+public:
+    virtual int next_process(std::vector<PCB>& process_table) override {
+        int min_abs_deadline = INT_MAX;
+        int min_pid = -1;
+
+        for (PCB& pcb : process_table) {
+            if (pcb.deadline < min_abs_deadline) {
+                min_abs_deadline = pcb.deadline;
+                min_pid = pcb.pid;
+            }
         }
         return min_pid;
     }
@@ -342,7 +375,8 @@ int main() {
     vector<ProcessParams> params = f.read_file();
 
     INE5412 cpu;
-    DumbScheduler scheduler;
+    //DumbScheduler scheduler;
+    RateMonotonicScheduler scheduler;
     System system(&cpu, &scheduler);
 
     for (ProcessParams& param : params) {
