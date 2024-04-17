@@ -5,6 +5,7 @@ Ok {
     Implementar os escalonadores
     Diagrama UML
     Makefile
+    Adicionar print do programa no relatorio?
 }
 
 O que fazer:
