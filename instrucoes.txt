@@ -14,4 +14,5 @@ O que fazer:
     Fazer relatorio
     Printar turnaround time, wait time... (Marco)
     Printar os dois escalonadores
+    Mudar quantidade de vezes que os escalonadores executam
 }
