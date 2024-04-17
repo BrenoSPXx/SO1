@@ -86,8 +86,8 @@ public:
         int min_pid = -1;
 
         for (PCB const& pcb : process_table) {
-            if (pcb.deadline < min_abs_deadline) {
-                min_abs_deadline = pcb.deadline;
+            if (pcb.deadline + pcb.creation_time < min_abs_deadline) {
+                min_abs_deadline = pcb.deadline + pcb.creation_time;
                 min_pid = pcb.pid;
             }
         }
@@ -377,7 +377,8 @@ int main() {
 
     INE5412 cpu;
     //DumbScheduler scheduler;
-    RateMonotonicScheduler scheduler;
+    //RateMonotonicScheduler scheduler;
+    EarliestDeadlineFirstScheduler scheduler;
     System system(&cpu, &scheduler);
 
     for (ProcessParams& param : params) {
