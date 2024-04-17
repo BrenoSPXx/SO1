@@ -47,12 +47,12 @@ struct PCB {
     CPUContext* context;
 };
 
-class BaseScheduler {
+class Scheduler {
 public:
     virtual int next_process(std::vector<PCB> const& process_table) = 0;
 };
 
-class DumbScheduler : public BaseScheduler {
+class DumbScheduler : public Scheduler {
 public:
     virtual int next_process(std::vector<PCB> const& process_table) override {
         int min_pid = -1;
@@ -63,7 +63,7 @@ public:
     }
 };
 
-class RateMonotonicScheduler : public BaseScheduler {
+class RateMonotonicScheduler : public Scheduler {
 public:
     virtual int next_process(std::vector<PCB> const& process_table) override {
         int min_period = INT_MAX;
@@ -79,7 +79,7 @@ public:
     }
 };
 
-class EarliestDeadlineFirstScheduler : public BaseScheduler {
+class EarliestDeadlineFirstScheduler : public Scheduler {
 public:
     virtual int next_process(std::vector<PCB> const& process_table) override {
         int min_abs_deadline = INT_MAX;
@@ -189,13 +189,13 @@ private:
     };
 
     CPU* cpu;
-    BaseScheduler* scheduler;
+    Scheduler* scheduler;
     std::vector<PeriodicProcess> periodic_processes;
     std::vector<PCB> process_table;
     int next_pid = 1;
 
 public:
-    System(CPU* cpu_, BaseScheduler* scheduler_) : cpu(cpu_), scheduler(scheduler_) {}
+    System(CPU* cpu_, Scheduler* scheduler_) : cpu(cpu_), scheduler(scheduler_) {}
 
     void add_periodic_process(int creation_time, int duration, int period, int deadline, int static_priority) {
         periodic_processes.push_back({next_pid, creation_time, duration, period, deadline, static_priority, 0});
