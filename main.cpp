@@ -204,7 +204,7 @@ public:
 
     void run() {
         printf("tempo ");
-        for (PeriodicProcess process: periodic_processes) {
+        for (PeriodicProcess& process : periodic_processes) {
             printf(" P%d", process.pid);
         }
         printf("\n");
