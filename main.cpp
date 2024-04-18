@@ -195,7 +195,7 @@ private:
     std::vector<PeriodicProcess> periodic_processes;
     std::vector<PCB> process_table;
     int next_pid = 1;
-    int context_changes = 1;
+    int context_changes = 0;
 
 public:
     System(CPU* cpu_, Scheduler* scheduler_) : cpu(cpu_), scheduler(scheduler_) {}
