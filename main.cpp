@@ -186,6 +186,8 @@ private:
         int static_priority;
 
         int executed_instances;
+        int wait_time;
+        int lost_deadlines;
     };
 
     CPU* cpu;
@@ -199,7 +201,7 @@ public:
     System(CPU* cpu_, Scheduler* scheduler_) : cpu(cpu_), scheduler(scheduler_) {}
 
     void add_periodic_process(int creation_time, int duration, int period, int deadline, int static_priority) {
-        periodic_processes.push_back({next_pid, creation_time, duration, period, deadline, static_priority, 0});
+        periodic_processes.push_back({next_pid, creation_time, duration, period, deadline, static_priority, 0, 0, 0});
         next_pid++;
     }
 
@@ -341,6 +343,7 @@ public:
                         text = "##";
                     } break;
                     case ProcessState::ready: {
+                        process.wait_time++;
                         text = "--";
                     } break;
                     }
@@ -351,7 +354,11 @@ public:
                 printf(" %s", text);
             }
             printf("\n");
-            printf("Trocas de Contexto: %d", context_changes);
+            printf("Número de trocas de contexto: %d", context_changes);
+            for (PeriodicProcess& process : periodic_processes) {
+                printf("Tempo médio de espera do processo %d: %d", process.pid, process.wait_time/total_executed_instances_per_process);
+                printf("Número de deadlines perdidos do processo %d: %d", process.pid, process.lost_deadlines);
+            }
             printf("\n");
             fflush(stdout);
 
