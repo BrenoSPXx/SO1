@@ -193,6 +193,7 @@ private:
     std::vector<PeriodicProcess> periodic_processes;
     std::vector<PCB> process_table;
     int next_pid = 1;
+    int context_changes = 1;
 
 public:
     System(CPU* cpu_, Scheduler* scheduler_) : cpu(cpu_), scheduler(scheduler_) {}
@@ -307,6 +308,7 @@ public:
                 for (PCB& pcb : process_table) {
                     if (pcb.pid == curr_pid) {
                         cpu->set_context(pcb.context);
+                        context_changes++;
 
                         pcb.state = ProcessState::running;
                         curr_running_process = &pcb;
@@ -348,6 +350,8 @@ public:
 
                 printf(" %s", text);
             }
+            printf("\n");
+            printf("Trocas de Contexto: %d", context_changes);
             printf("\n");
             fflush(stdout);
 
