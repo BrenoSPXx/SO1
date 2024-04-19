@@ -188,6 +188,7 @@ private:
         int executed_instances;
         int wait_time;
         int lost_deadlines;
+        int turnaround_time;
     };
 
     CPU* cpu;
@@ -201,7 +202,7 @@ public:
     System(CPU* cpu_, Scheduler* scheduler_) : cpu(cpu_), scheduler(scheduler_) {}
 
     void add_periodic_process(int creation_time, int duration, int period, int deadline, int static_priority) {
-        periodic_processes.push_back({next_pid, creation_time, duration, period, deadline, static_priority, 0, 0, 0});
+        periodic_processes.push_back({next_pid, creation_time, duration, period, deadline, static_priority, 0, 0, 0, 0});
         next_pid++;
     }
 
@@ -225,9 +226,18 @@ public:
                     bool finished = pcb.executed_cycles >= pcb.duration;
                     bool reached_deadline = cpu->get_time() >= (pcb.creation_time + pcb.deadline);
 
+                    if (!finished && reached_deadline) { 
+                        for (PeriodicProcess& process : periodic_processes) {
+                            if (process.pid == pcb.pid) {
+                                process.lost_deadlines++;
+                            }
+                        }
+                    }
+
                     if (finished || reached_deadline) {
                         for (PeriodicProcess& process : periodic_processes) {
                             if (process.pid == pcb.pid) {
+                                process.turnaround_time = process.turnaround_time + (cpu->get_time() - pcb.creation_time);
                                 process.executed_instances++;
                                 break;
                             }
@@ -354,12 +364,6 @@ public:
                 printf(" %s", text);
             }
             printf("\n");
-            printf("Número de trocas de contexto: %d", context_changes);
-            for (PeriodicProcess& process : periodic_processes) {
-                printf("Tempo médio de espera do processo %d: %d", process.pid, process.wait_time/total_executed_instances_per_process);
-                printf("Número de deadlines perdidos do processo %d: %d", process.pid, process.lost_deadlines);
-            }
-            printf("\n");
             fflush(stdout);
 
             ////////////////////
@@ -373,6 +377,26 @@ public:
             ///////////////////////////
             if (curr_running_process) curr_running_process->executed_cycles++;
         }
+
+        printf("\n");
+
+        float total_turnaround_time = 0;
+        float total_wait_time = 0;
+
+        for (PeriodicProcess& process : periodic_processes) {
+            float process_turnaround_time = float(process.turnaround_time)/float(process.executed_instances);
+            float process_wait_time = float(process.wait_time)/float(process.executed_instances);
+            total_turnaround_time += process_turnaround_time;
+            total_wait_time += process_wait_time;
+
+            printf("Turnaround time do processo %d: %.2f\n", process.pid, process_turnaround_time);
+            printf("Tempo médio de espera do processo %d: %.2f\n", process.pid, process_wait_time);
+            printf("Número de deadlines perdidos do processo %d: %d\n\n", process.pid, process.lost_deadlines);
+        }
+        
+        printf("Turnaround time médio: %.2f\n", (total_turnaround_time/periodic_processes.size()));
+        printf("Tempo de espera médio entre os processos: %.2f\n", (total_wait_time/periodic_processes.size()));
+        printf("Número total de trocas de contexto: %d\n\n", context_changes);
     }
 
     ~System() {
