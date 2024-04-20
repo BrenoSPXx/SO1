@@ -36,7 +36,7 @@ public:
             process_params.push_back({creation_time, duration, period, deadline, static_priority});
         }
 
-		cout << "Quantidade de processos lidos do arquivo: " << process_params.size() << endl;
+//		cout << "Quantidade de processos lidos do arquivo: " << process_params.size() << endl;
 
         return process_params;
 	}

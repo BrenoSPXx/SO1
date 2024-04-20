@@ -207,13 +207,14 @@ public:
     }
 
     void run() {
+        constexpr int total_executed_instances_per_process = 5;
+        printf("Numero de iteracoes: %d\n\n", total_executed_instances_per_process);
+
         printf("tempo ");
         for (PeriodicProcess& process : periodic_processes) {
             printf(" P%d", process.pid);
         }
         printf("\n");
-
-        constexpr int total_executed_instances_per_process = 2;
 
         while (true) {
             /////////////////////////////
@@ -410,14 +411,24 @@ int main() {
     File f;
     vector<ProcessParams> params = f.read_file();
 
-    INE5412 cpu;
-    //DumbScheduler scheduler;
-    //RateMonotonicScheduler scheduler;
-    EarliestDeadlineFirstScheduler scheduler;
-    System system(&cpu, &scheduler);
+    INE5412 rm_cpu;
+    RateMonotonicScheduler rm_scheduler;
+
+    INE5412 edf_cpu;
+    EarliestDeadlineFirstScheduler edf_scheduler;
+
+    System rm_system(&rm_cpu, &rm_scheduler);
+    System edf_system(&edf_cpu, &edf_scheduler);
 
     for (ProcessParams& param : params) {
-        system.add_periodic_process(
+        rm_system.add_periodic_process(
+            param.creation_time,
+            param.duration,
+            param.period,
+            param.deadline,
+            param.static_priority
+        );
+        edf_system.add_periodic_process(
             param.creation_time,
             param.duration,
             param.period,
@@ -425,6 +436,16 @@ int main() {
             param.static_priority
         );
     }
-    system.run();
+    printf("###########\n");
+    printf("RM System\n");
+    printf("###########\n");
+    rm_system.run();
+
+    printf("\n");
+
+    printf("###########\n");
+    printf("EDF System\n");
+    printf("###########\n");
+    edf_system.run();
 }
 
