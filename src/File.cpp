@@ -1,9 +1,8 @@
+#pragma once
+
 #include <iostream>
 #include <fstream>
-#include <string>
 #include <vector>
-
-using namespace std;
 
 struct ProcessParams {
     int creation_time;
@@ -19,13 +18,13 @@ public:
 	File() {
 		myfile.open("entrada.txt");
 		if (!myfile.is_open()) {
-			cout << "Erro ao abrir o arquivo!" << endl;
+			std::cout << "Erro ao abrir o arquivo!" << std::endl;
 		}
 	}
 	
 	std::vector<ProcessParams> read_file() {
 		if (!myfile.is_open()) {
-			cout << "Arquivo não está aberto!" << endl;
+			std::cout << "Arquivo não está aberto!" << std::endl;
 		}
 
         std::vector<ProcessParams> process_params;
@@ -42,6 +41,6 @@ public:
 	}
 
 private:
-	ifstream myfile; 
+	std::ifstream myfile; 
 };
 
