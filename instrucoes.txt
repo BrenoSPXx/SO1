@@ -6,14 +6,15 @@ Ok {
     Diagrama UML
     Makefile
     Adicionar print do programa no relatorio?
+    Printar os dois escalonadores
+    Printar turnaround time, wait time... (Marco)
+    Imprimir e mudar quantidade de vezes que os escalonadores executam
+    Organizar programas em arquivos diferentes
+    Imprimir perda de deadlines total
+    Fazer relatorio
 }
 
-O que fazer:
-{
+O que fazer: {
+    Checar secoes do relatorio
     Rodar Valgrind
-    Organizar programas em arquivos diferentes
-    Fazer relatorio
-    Printar turnaround time, wait time... (Marco)
-    Printar os dois escalonadores
-    Mudar quantidade de vezes que os escalonadores executam
 }
