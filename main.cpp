@@ -383,12 +383,14 @@ public:
 
         float total_turnaround_time = 0;
         float total_wait_time = 0;
+        int total_lost_deadlines = 0;
 
         for (PeriodicProcess& process : periodic_processes) {
             float process_turnaround_time = float(process.turnaround_time)/float(process.executed_instances);
             float process_wait_time = float(process.wait_time)/float(process.executed_instances);
             total_turnaround_time += process_turnaround_time;
             total_wait_time += process_wait_time;
+            total_lost_deadlines += process.lost_deadlines;
 
             printf("Turnaround time do processo %d: %.2f\n", process.pid, process_turnaround_time);
             printf("Tempo médio de espera do processo %d: %.2f\n", process.pid, process_wait_time);
@@ -397,6 +399,7 @@ public:
         
         printf("Turnaround time médio: %.2f\n", (total_turnaround_time/periodic_processes.size()));
         printf("Tempo de espera médio entre os processos: %.2f\n", (total_wait_time/periodic_processes.size()));
+        printf("Número total de deadlines perdidos: %d\n", total_lost_deadlines);
         printf("Número total de trocas de contexto: %d\n\n", context_changes);
     }
 
