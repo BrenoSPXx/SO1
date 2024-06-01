@@ -5,8 +5,8 @@
 class Input {
 private:
     int management_mode;
-    int memory_size;
-    int block_size;
+    size_t memory_size;
+    size_t block_size;
     int algorithm;
 
     class Operation {
@@ -23,5 +23,8 @@ private:
 
 public:
     void parse();
+    size_t get_memory_size()                { return memory_size; } 
+    size_t get_block_size()                 { return block_size; }
+    std::vector<Operation> get_operations() { return operations; }
 };
 
