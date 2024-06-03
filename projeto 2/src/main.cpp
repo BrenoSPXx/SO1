@@ -16,5 +16,16 @@ int main() {
     BitmapManager bitmap_manager(input.get_memory_size(), input.get_block_size());
     MemoryAlgorithm memory_algorithm;
     MemorySystem system(&bitmap_manager, &memory_algorithm);
-    system.allocate(17, 1);
+
+    for (Input::Operation& operation : input.get_operations()) {
+        char action       = operation.get_action();
+        size_t id         = operation.get_id();
+        size_t alloc_size = operation.get_allocation_size();
+
+        if (action == 'A') {
+            system.allocate(alloc_size, id);
+        } else if (action == 'D') {
+            system.deallocate(id);
+        }
+    }
 }

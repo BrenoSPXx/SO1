@@ -1,9 +1,22 @@
+#undef NDEBUG
+#include <assert.h>
+
 #include "MemorySystem.h"
-// TODO: delete
-#include "BitmapManager.h"
+#include "SegmentIterator.h"
 
 void MemorySystem::allocate(size_t bytes, size_t id) {
-    MemorySegment* segment = new BitmapManager::Segment(true, 2, 19);
+    MemorySegment* segment;
+    {
+        // TODO: substitute with MemoryAlgorithm call
+        SegmentIterator* iterator = memory_manager->get_segment_iterator();
+        while (true) {
+            segment = iterator->next();
+            assert(segment);
+
+            if (segment->is_free() && segment->get_size() >= bytes) break;
+        }
+    }
+
     segment = memory_manager->allocate(segment, bytes);
     used_memory.insert({id, segment});
 }
