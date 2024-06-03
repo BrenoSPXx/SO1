@@ -1,6 +1,6 @@
-CC=g++
+CC=clang++
 
-CFLAGS=-std=c++11 -g
+CFLAGS=-std=c++20 -g -Wall -Wextra
 
 EXECUTABLE=program
 

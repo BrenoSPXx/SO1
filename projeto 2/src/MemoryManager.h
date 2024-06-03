@@ -14,6 +14,7 @@ public:
         memory = new uint8_t[total_size];
     }
 
-    virtual void allocate(MemorySegment** segment, size_t bytes) = 0;
+    [[nodiscard]]
+    virtual MemorySegment* allocate(MemorySegment* segment, size_t bytes) = 0;
     virtual void deallocate(MemorySegment* segment) = 0;
 };
