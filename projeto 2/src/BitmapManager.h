@@ -10,26 +10,24 @@ class BitmapManager : public MemoryManager {
 public:
     // TODO: move to private
     class Segment : public MemorySegment {
-    public:
+      public:
         Segment(bool free_, size_t bin_id_, size_t size_) : MemorySegment(free_, bin_id_, size_) {}
     };
     class Iterator : public SegmentIterator {
+      private:
+        bool first = true;
+        MemorySegment* segment;
         BitmapManager* manager;
 
       public:
         Iterator(Segment* segment, BitmapManager* manager_);
 
-        virtual void copy(SegmentIterator&) override;
-        virtual ~Iterator() override;
-
-        virtual SegmentIterator& operator++() override;
-        virtual SegmentIterator& operator++(int) override;
+        virtual MemorySegment* next() override;
     };
 
 
 private:
     uint8_t* bitmap = 0;
-    int next_id = 1;
 
     // TODO: delete
     size_t bitmap_size();
@@ -50,6 +48,5 @@ public:
 
     virtual void deallocate(MemorySegment* segment) override;
 
-    SegmentIterator begin();
-    SegmentIterator end();
+    virtual SegmentIterator* get_segment_iterator() override;
 };

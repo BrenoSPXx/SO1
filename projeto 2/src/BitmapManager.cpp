@@ -51,12 +51,6 @@ size_t BitmapManager::bitmap_size() {
     return num_bin_bytes;
 }
 
-BitmapManager::Iterator::Iterator(Segment* segment, BitmapManager* manager_) : SegmentIterator(segment), manager(manager_) {}
-
-void BitmapManager::Iterator::copy(SegmentIterator& other) {
-    manager = other->manager;
-}
-
 auto BitmapManager::get_segment(size_t bin_start) -> Segment* {
     size_t bin_i = bin_start;
     size_t num_bins = (total_size + bin_size-1) / bin_size;
@@ -85,20 +79,23 @@ auto BitmapManager::get_segment(size_t bin_start) -> Segment* {
     return new Segment(!occupied_segment, bin_start, (bin_i - bin_start) * bin_size);
 }
 
-auto BitmapManager::begin() -> Iterator {
-    return Iterator(get_segment(0), this);
+SegmentIterator* BitmapManager::get_segment_iterator() {
+    return new Iterator(get_segment(0), this);
 }
 
-SegmentIterator& BitmapManager::Iterator::operator++() {
+BitmapManager::Iterator::Iterator(Segment* segment_, BitmapManager* manager_) : segment(segment_), manager(manager_) {}
+
+MemorySegment* BitmapManager::Iterator::next() {
+    if (first) {
+        first = false;
+        return segment;
+    }
+
     size_t next_bin = segment->get_bin_id() + segment->get_size() / manager->bin_size;
     Segment* new_segment = manager->get_segment(next_bin);
 
     delete segment;
     segment = new_segment;
-
-    return *this;
+    return new_segment;
 }
 
-SegmentIterator& BitmapManager::Iterator::operator++(int) {
-    return ++*this;
-}
