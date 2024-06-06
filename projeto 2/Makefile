@@ -7,7 +7,7 @@ EXECUTABLE=program
 SRC_DIR=src
 BUILD_DIR=build
 SRC_FILES=main.cpp
-OBJ_FILES=$(addprefix $(BUILD_DIR)/,main.o Input.o BitmapManager.o MemorySystem.o)
+OBJ_FILES=$(addprefix $(BUILD_DIR)/,main.o Input.o BitmapManager.o MemorySystem.o LinkedListManager.o)
 
 $(EXECUTABLE): $(OBJ_FILES)
 	$(CC) $(CFLAGS) -o $(EXECUTABLE) $(OBJ_FILES)
@@ -27,6 +27,10 @@ $(BUILD_DIR)/BitmapManager.o: $(SRC_DIR)/BitmapManager.cpp
 $(BUILD_DIR)/MemorySystem.o: $(SRC_DIR)/MemorySystem.cpp
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c -o $(BUILD_DIR)/MemorySystem.o $(SRC_DIR)/MemorySystem.cpp
+
+$(BUILD_DIR)/LinkedListManager.o: $(SRC_DIR)/LinkedListManager.cpp
+	mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c -o $(BUILD_DIR)/LinkedListManager.o $(SRC_DIR)/LinkedListManager.cpp
 
 all: $(EXECUTABLE)
 
