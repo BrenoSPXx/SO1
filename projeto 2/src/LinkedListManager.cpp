@@ -10,7 +10,7 @@ LinkedListManager::Iterator::Iterator(MemorySegment* segment_, LinkedListManager
 LinkedListManager::LinkedListManager(size_t total_size, size_t bin_size) : MemoryManager(total_size, bin_size) {
     // Inicializa a lista com um único segmento grande livre
     size_t zero = 0;
-    segments.append(new Segment(true, zero, static_cast<size_t>(std::ceil(total_size / bin_size))));
+    segments.append(new Segment(true, zero, total_size));
 }
 
 // Destrutor do LinkedListManager limpa todos os segmentos
@@ -25,15 +25,16 @@ LinkedListManager::~LinkedListManager() {
 
 // Aloca um bloco de memória de tamanho especificado em bytes
 MemorySegment* LinkedListManager::allocate(MemorySegment* segment, size_t bytes) {
+    statistics.allocate(bytes);
     size_t required_bins = (bytes + bin_size - 1) / bin_size;  // Calcula o número necessário de bins, arredondando para cima
 
     Segment* seg = (Segment*)segment; 
     for (auto node = segments.getHead(); node != nullptr; node = node->next) {
         if (seg == node->data) {
-            if (seg->is_free() && seg->get_size() >= required_bins) {
-                if (seg->get_size() > required_bins) {
+            if (seg->is_free() && seg->get_size() >= required_bins * bytes) {
+                if (seg->get_size() > required_bins * bytes) {
                     // Se o segmento é maior que o necessário, divide o segmento
-                    segments.insertAfter(node, new Segment(true, seg->get_bin_id() + required_bins, seg->get_size() - required_bins));
+                    segments.insertAfter(node, new Segment(true, seg->get_bin_id() + required_bins, seg->get_size() - required_bins * bytes));
                     seg->set_size(required_bins);
                 }
                 seg->set_free(false);
@@ -46,7 +47,7 @@ MemorySegment* LinkedListManager::allocate(MemorySegment* segment, size_t bytes)
 
 // Libera um bloco de memória especificado
 void LinkedListManager::deallocate(MemorySegment* segment) {
-
+    statistics.deallocate(segment->get_size());
     auto node = segments.getHead();
     while (node) {
         if (node->data == segment) {
@@ -109,5 +110,15 @@ void LinkedListManager::Segment::set_size(size_t value) {
 }
 
 void LinkedListManager::print_specific() {
-    std::cout << "Linked List\n";
+    auto seg = segments.getHead();
+    for (size_t i = 0; i < segments.size(); i++) {
+        std::cout << seg->data->get_size() << " ";
+        if (seg->data->is_free()) {
+            std::cout << "1" << std::endl;
+        } 
+        else {
+            std::cout << "0" <<std::endl;
+        }
+        seg = seg->next;
+    }
 }

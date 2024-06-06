@@ -13,22 +13,23 @@ public:
 
         Node(T val) : data(val), next(nullptr), prev(nullptr) {}
     };
+    private:
+        Node* head;
+        Node* tail;
+        size_t size_ = 0;
 
-    Node* head;
-    Node* tail;
+    public:
+        LinkedList();
+        ~LinkedList();
 
-    LinkedList();
-    ~LinkedList();
-
-    void append(T data);
-    void prepend(T data);
-    void remove(T data);
-    void insertAfter(Node* node, T data);
-    T getNextDataFromValue(T value);
-    bool isEmpty(); 
-
-    Node* getHead() const { return head; }
-    Node* getTail() const { return tail; }
+        void append(T data);
+        void prepend(T data);
+        void remove(T data);
+        void insertAfter(Node* node, T data);
+        bool isEmpty(); 
+        size_t size();
+        Node* getHead() const { return head; }
+        Node* getTail() const { return tail; }
 };
 
 template<typename T>
@@ -44,17 +45,6 @@ LinkedList<T>::~LinkedList() {
     }
 }
 
-template<typename T>
-T LinkedList<T>::getNextDataFromValue(T value) {
-    Node* current = head;
-    while (current != nullptr) {
-        if (current->data == value && current->next != nullptr) {
-            return current->next->data;
-        }
-        current = current->next;
-    }
-    throw std::out_of_range("No next node data available for the given value.");
-}
 
 template<typename T>
 void LinkedList<T>::append(T data) {
@@ -66,6 +56,7 @@ void LinkedList<T>::append(T data) {
         newNode->prev = tail;
         tail = newNode;
     }
+    size_ += 1;
 }
 
 template<typename T>
@@ -78,6 +69,7 @@ void LinkedList<T>::prepend(T data) {
         head->prev = newNode;
         head = newNode;
     }
+    size_+= 1;
 }
 
 template<typename T>
@@ -103,6 +95,7 @@ void LinkedList<T>::remove(T data) {
     }
 
     delete current;
+    size_ -= 1;
 }
 
 template<typename T>
@@ -116,10 +109,15 @@ void LinkedList<T>::insertAfter(Node* node, T data) {
         node->next->prev = newNode;
     }
     node->next = newNode;
-    
+    size += 1;
 }
 
 template<typename T>
 bool LinkedList<T>::isEmpty(){
     return head == nullptr;
+}
+
+template<typename T>
+size_t LinkedList<T>::size() {
+    return size_;
 }
