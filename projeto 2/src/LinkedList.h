@@ -23,13 +23,11 @@ public:
         ~LinkedList();
 
         void append(T data);
-        void prepend(T data);
         void remove(T data);
         void insertAfter(Node* node, T data);
         bool isEmpty(); 
         size_t size();
         Node* getHead() const { return head; }
-        Node* getTail() const { return tail; }
 };
 
 template<typename T>
@@ -57,19 +55,6 @@ void LinkedList<T>::append(T data) {
         tail = newNode;
     }
     size_ += 1;
-}
-
-template<typename T>
-void LinkedList<T>::prepend(T data) {
-    Node* newNode = new Node(data);
-    if (head == nullptr) {
-        head = tail = newNode;
-    } else {
-        newNode->next = head;
-        head->prev = newNode;
-        head = newNode;
-    }
-    size_+= 1;
 }
 
 template<typename T>
