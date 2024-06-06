@@ -109,7 +109,7 @@ void LinkedList<T>::insertAfter(Node* node, T data) {
         node->next->prev = newNode;
     }
     node->next = newNode;
-    size += 1;
+    size_ += 1;
 }
 
 template<typename T>

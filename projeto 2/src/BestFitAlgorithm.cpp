@@ -14,7 +14,7 @@ MemorySegment* BestFitAlgorithm::get_free_segment(MemoryManager* memory_manager,
 
         if (segment->is_free() && segment->get_size() >= bytes) {
             if ((best_segment == NULL) || (segment->get_size() < best_segment->get_size())) {
-                if (best_segment != NULL) {
+                if (!memory_manager->auto_delete() && best_segment != NULL) {
                     delete best_segment;
                 }
                 best_segment = segment->create_copy();

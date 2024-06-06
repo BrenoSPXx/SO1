@@ -41,6 +41,7 @@ public:
         LinkedListManager(size_t total_size, size_t bin_size);
         ~LinkedListManager();
 
+        virtual bool auto_delete() override { return true; }
         virtual void print_specific() override;
 
         // Métodos de alocação e dealocação de memória

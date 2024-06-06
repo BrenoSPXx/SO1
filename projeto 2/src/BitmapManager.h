@@ -41,6 +41,7 @@ public:
     BitmapManager& operator=(BitmapManager const&) = delete;
     BitmapManager& operator=(BitmapManager&&)      = delete;
 
+    virtual bool auto_delete() override { return false; }
     virtual void print_specific() override;
 
     [[nodiscard]]

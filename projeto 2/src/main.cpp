@@ -30,22 +30,25 @@ int main() {
         memory_algorithm = new BestFitAlgorithm();
     }
 
-    MemorySystem system(memory_manager, memory_algorithm);
+    {
+        MemorySystem system(memory_manager, memory_algorithm);
 
-    for (Input::Operation& operation : input.get_operations()) {
-        char action       = operation.get_action();
-        size_t id         = operation.get_id();
-        size_t alloc_size = operation.get_allocation_size();
+        for (Input::Operation& operation : input.get_operations()) {
+            char action       = operation.get_action();
+            size_t id         = operation.get_id();
+            size_t alloc_size = operation.get_allocation_size();
 
-        if (action == 'A') {
-            system.allocate(alloc_size, id);
-        } else if (action == 'D') {
-            system.deallocate(id);
+            if (action == 'A') {
+                system.allocate(alloc_size, id);
+            } else if (action == 'D') {
+                system.deallocate(id);
+            }
         }
-    }
 
-    memory_manager->print_statistics();
-    memory_manager->print_specific();
+        memory_manager->print_specific();
+        cout << "\n";
+        memory_manager->print_statistics();
+    }
 
     delete memory_manager;
     delete memory_algorithm;

@@ -49,6 +49,8 @@ public:
         delete memory;
     }
 
+    virtual bool auto_delete() = 0;
+
     void print_statistics();
 
     virtual void print_specific() = 0;

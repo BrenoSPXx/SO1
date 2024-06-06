@@ -17,8 +17,10 @@ public:
         : memory_manager(memory_manager_), memory_algorithm(memory_algorithm_) {}
 
     ~MemorySystem() {
-        for (std::pair<size_t, MemorySegment*> curr_pair : used_memory) {
-            delete curr_pair.second;
+        if (!memory_manager->auto_delete()) {
+            for (std::pair<size_t, MemorySegment*> curr_pair : used_memory) {
+                delete curr_pair.second;
+            }
         }
     }
 

@@ -31,11 +31,11 @@ MemorySegment* LinkedListManager::allocate(MemorySegment* segment, size_t bytes)
     Segment* seg = (Segment*)segment; 
     for (auto node = segments.getHead(); node != nullptr; node = node->next) {
         if (seg == node->data) {
-            if (seg->is_free() && seg->get_size() >= required_bins * bytes) {
-                if (seg->get_size() > required_bins * bytes) {
+            if (seg->is_free() && seg->get_size() >= required_bins * bin_size) {
+                if (seg->get_size() > required_bins * bin_size) {
                     // Se o segmento é maior que o necessário, divide o segmento
-                    segments.insertAfter(node, new Segment(true, seg->get_bin_id() + required_bins, seg->get_size() - required_bins * bytes));
-                    seg->set_size(required_bins);
+                    segments.insertAfter(node, new Segment(true, seg->get_bin_id() + required_bins, seg->get_size() - required_bins * bin_size));
+                    seg->set_size(required_bins * bin_size);
                 }
                 seg->set_free(false);
                 return seg;
@@ -63,6 +63,9 @@ void LinkedListManager::deallocate(MemorySegment* segment) {
                 node->data->set_size(node->next->data->get_size() + node->data->get_size());
                 segments.remove(node->next->data);
             }
+
+            node->data->set_free(true);
+
             break;
         }
         node = node->next;
@@ -114,10 +117,10 @@ void LinkedListManager::print_specific() {
     for (size_t i = 0; i < segments.size(); i++) {
         std::cout << seg->data->get_size() << " ";
         if (seg->data->is_free()) {
-            std::cout << "1" << std::endl;
+            std::cout << "0" << std::endl;
         } 
         else {
-            std::cout << "0" <<std::endl;
+            std::cout << "1" <<std::endl;
         }
         seg = seg->next;
     }
