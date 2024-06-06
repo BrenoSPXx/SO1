@@ -55,13 +55,16 @@ void LinkedListManager::deallocate(MemorySegment* segment) {
             if (node->prev && node->prev->data->is_free()) {
                 node->prev->data->set_size(node->data->get_size() + node->prev->data->get_size());
                 segments.remove((Segment*)(segment));
+                delete segment;
                 node = node->prev;  // Atualiza o node para o segmento expandido
             }
 
             // Coalescência com o segmento seguinte, se livre
             if (node->next && node->next->data->is_free()) {
                 node->data->set_size(node->next->data->get_size() + node->data->get_size());
+                Segment* to_delete = node->next->data;
                 segments.remove(node->next->data);
+                delete to_delete;
             }
 
             node->data->set_free(true);

@@ -22,5 +22,6 @@ MemorySegment* BestFitAlgorithm::get_free_segment(MemoryManager* memory_manager,
         }
     }
 
+    delete iterator;
     return best_segment;
 }

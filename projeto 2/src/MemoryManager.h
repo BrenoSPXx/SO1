@@ -46,7 +46,7 @@ public:
         memory = new uint8_t[total_size];
     }
     virtual ~MemoryManager() {
-        delete memory;
+        delete[] memory;
     }
 
     virtual bool auto_delete() = 0;
