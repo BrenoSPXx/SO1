@@ -7,7 +7,8 @@ EXECUTABLE=program
 SRC_DIR=src
 BUILD_DIR=build
 SRC_FILES=main.cpp
-OBJ_FILES=$(addprefix $(BUILD_DIR)/,main.o Input.o BitmapManager.o MemorySystem.o LinkedListManager.o)
+
+OBJ_FILES=$(addprefix $(BUILD_DIR)/,main.o Input.o BitmapManager.o MemorySystem.o LinkedListManager.o FirstFitAlgorithm.o BestFitAlgorithm.o MemoryManager.o)
 
 $(EXECUTABLE): $(OBJ_FILES)
 	$(CC) $(CFLAGS) -o $(EXECUTABLE) $(OBJ_FILES)
@@ -31,6 +32,18 @@ $(BUILD_DIR)/MemorySystem.o: $(SRC_DIR)/MemorySystem.cpp
 $(BUILD_DIR)/LinkedListManager.o: $(SRC_DIR)/LinkedListManager.cpp
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c -o $(BUILD_DIR)/LinkedListManager.o $(SRC_DIR)/LinkedListManager.cpp
+
+$(BUILD_DIR)/FirstFitAlgorithm.o: $(SRC_DIR)/FirstFitAlgorithm.cpp
+	mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c -o $(BUILD_DIR)/FirstFitAlgorithm.o $(SRC_DIR)/FirstFitAlgorithm.cpp
+
+$(BUILD_DIR)/BestFitAlgorithm.o: $(SRC_DIR)/BestFitAlgorithm.cpp
+	mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c -o $(BUILD_DIR)/BestFitAlgorithm.o $(SRC_DIR)/BestFitAlgorithm.cpp
+
+$(BUILD_DIR)/MemoryManager.o: $(SRC_DIR)/MemoryManager.cpp
+	mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c -o $(BUILD_DIR)/MemoryManager.o $(SRC_DIR)/MemoryManager.cpp
 
 all: $(EXECUTABLE)
 

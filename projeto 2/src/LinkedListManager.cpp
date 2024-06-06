@@ -1,7 +1,7 @@
 #include <cmath>
+#include <iostream>
 
 #include "LinkedListManager.h"
-
 
 LinkedListManager::Segment::Segment(bool free, size_t bin_id, size_t size) : MemorySegment(free, bin_id, size) {}
 LinkedListManager::Iterator::Iterator(MemorySegment* segment_, LinkedListManager* manager_) : segment(segment_), manager(manager_) {}
@@ -24,19 +24,21 @@ LinkedListManager::~LinkedListManager() {
 }
 
 // Aloca um bloco de memória de tamanho especificado em bytes
-MemorySegment* LinkedListManager::allocate(size_t bytes) {
+MemorySegment* LinkedListManager::allocate(MemorySegment* segment, size_t bytes) {
     size_t required_bins = (bytes + bin_size - 1) / bin_size;  // Calcula o número necessário de bins, arredondando para cima
 
+    Segment* seg = (Segment*)segment; 
     for (auto node = segments.getHead(); node != nullptr; node = node->next) {
-        Segment* seg = node->data;
-        if (seg->is_free() && seg->get_size() >= required_bins) {
-            if (seg->get_size() > required_bins) {
-                // Se o segmento é maior que o necessário, divide o segmento
-                segments.insertAfter(node, new Segment(true, seg->get_bin_id() + required_bins, seg->get_size() - required_bins));
-                seg->set_size(required_bins);
+        if (seg == node->data) {
+            if (seg->is_free() && seg->get_size() >= required_bins) {
+                if (seg->get_size() > required_bins) {
+                    // Se o segmento é maior que o necessário, divide o segmento
+                    segments.insertAfter(node, new Segment(true, seg->get_bin_id() + required_bins, seg->get_size() - required_bins));
+                    seg->set_size(required_bins);
+                }
+                seg->set_free(false);
+                return seg;
             }
-            seg->set_free(false);
-            return seg;
         }
     }
     return nullptr;  // Retorna nulo se nenhum segmento livre adequado for encontrado
@@ -104,4 +106,8 @@ void LinkedListManager::Segment::set_bin_id(size_t value) {
 
 void LinkedListManager::Segment::set_size(size_t value) {
     size = value;
+}
+
+void LinkedListManager::print_specific() {
+    std::cout << "Linked List\n";
 }

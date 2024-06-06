@@ -1,4 +1,10 @@
+#include <iostream>
+
 #include "BitmapManager.h"
+
+MemorySegment* BitmapManager::Segment::create_copy() {
+    return new Segment(free, bin_id, size);
+}
 
 BitmapManager::BitmapManager(size_t total_size, size_t bin_size) : MemoryManager(total_size, bin_size) {
     size_t num_bins = (total_size + bin_size-1) / bin_size;
@@ -10,11 +16,25 @@ BitmapManager::~BitmapManager() {
     delete[] bitmap;
 }
 
+void BitmapManager::print_specific() {
+    size_t num_bins = (total_size + bin_size-1) / bin_size;
+
+    for (size_t bin_i = 0; bin_i < num_bins; bin_i++) {
+        size_t bin_byte = bin_i / 8;
+        size_t bin_byte_offset = bin_i % 8;
+        std::cout << ((bool)(bitmap[bin_byte] & (1 << bin_byte_offset)));
+    }
+
+    std::cout << "\n";
+}
+
 MemorySegment* BitmapManager::allocate(MemorySegment* segment, size_t bytes) {
     if (!segment->is_free() || segment->get_size() < bytes) {
         delete segment;
         return 0;
     }
+
+    statistics.allocate(bytes);
 
     size_t total_bins = (bytes + bin_size-1) / bin_size;
     size_t start_bin = segment->get_bin_id();
@@ -27,10 +47,12 @@ MemorySegment* BitmapManager::allocate(MemorySegment* segment, size_t bytes) {
     }
 
     delete segment;
-    return new MemorySegment(false, start_bin, bytes);
+    return new Segment(false, start_bin, bytes);
 }
 
 void BitmapManager::deallocate(MemorySegment* segment) {
+    statistics.deallocate(segment->get_size());
+
     size_t total_bins = (segment->get_size() + bin_size-1) / bin_size;
     size_t start_bin = segment->get_bin_id();
     size_t end_bin = start_bin + total_bins;
@@ -42,13 +64,6 @@ void BitmapManager::deallocate(MemorySegment* segment) {
     }
 
     delete segment;
-}
-
-// TODO: delete
-size_t BitmapManager::bitmap_size() {
-    size_t num_bins = (total_size + bin_size-1) / bin_size;
-    size_t num_bin_bytes = (num_bins + 8-1) / 8;
-    return num_bin_bytes;
 }
 
 auto BitmapManager::get_segment(size_t bin_start) -> Segment* {
@@ -80,14 +95,19 @@ auto BitmapManager::get_segment(size_t bin_start) -> Segment* {
 }
 
 SegmentIterator* BitmapManager::get_segment_iterator() {
-    return new Iterator(get_segment(0), this);
+    return new Iterator(this);
 }
 
-BitmapManager::Iterator::Iterator(Segment* segment_, BitmapManager* manager_) : segment(segment_), manager(manager_) {}
+BitmapManager::Iterator::Iterator(BitmapManager* manager_) : manager(manager_) {}
+
+BitmapManager::Iterator::~Iterator() {
+    if (segment) delete segment;
+}
 
 MemorySegment* BitmapManager::Iterator::next() {
     if (first) {
         first = false;
+        segment = manager->get_segment(0);
         return segment;
     }
 

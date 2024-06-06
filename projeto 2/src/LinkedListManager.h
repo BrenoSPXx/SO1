@@ -17,6 +17,8 @@ public:
             void set_free(bool value);
             void set_bin_id(size_t value);
             void set_size(size_t value);
+
+            virtual MemorySegment* create_copy() override { return this; }
     };
     class Iterator : public SegmentIterator {
       private:
@@ -39,9 +41,11 @@ public:
         LinkedListManager(size_t total_size, size_t bin_size);
         ~LinkedListManager();
 
+        virtual void print_specific() override;
+
         // Métodos de alocação e dealocação de memória
-        MemorySegment* allocate(size_t bytes);
-        void deallocate(MemorySegment* segment);
+        virtual MemorySegment* allocate(MemorySegment* segment, size_t bytes) override;
+        virtual void deallocate(MemorySegment* segment) override;
         virtual SegmentIterator* get_segment_iterator() override;
         std::vector<Segment*> get_segments() const;
 };

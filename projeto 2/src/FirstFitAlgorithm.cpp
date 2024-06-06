@@ -10,7 +10,7 @@ MemorySegment* FirstFitAlgorithm::get_free_segment(MemoryManager* memory_manager
         assert(segment);
 
         if (segment->is_free() && segment->get_size() >= bytes) {
-            return segment;
+            return segment->create_copy();
         }
     }
 }

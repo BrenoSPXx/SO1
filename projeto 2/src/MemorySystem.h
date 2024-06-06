@@ -4,9 +4,7 @@
 #include <stdlib.h>
 
 #include "MemoryManager.h"
-
-// TODO: delete
-class MemoryAlgorithm {};
+#include "MemoryAlgorithm.h"
 
 class MemorySystem {
 private:

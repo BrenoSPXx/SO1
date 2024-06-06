@@ -28,8 +28,10 @@ private:
 
 public:
     void parse();
+    size_t get_management_mode()             { return management_mode; }
     size_t get_memory_size()                 { return memory_size; } 
     size_t get_block_size()                  { return block_size; }
+    int get_algorithm()                      { return algorithm; }
     std::vector<Operation>& get_operations() { return operations; }
 };
 
