@@ -34,9 +34,9 @@ MemorySegment* BitmapManager::allocate(MemorySegment* segment, size_t bytes) {
         return 0;
     }
 
-    statistics.allocate(bytes);
-
     size_t total_bins = (bytes + bin_size-1) / bin_size;
+    statistics.allocate(total_bins * bin_size);
+
     size_t start_bin = segment->get_bin_id();
     size_t end_bin = start_bin + total_bins;
 
@@ -51,9 +51,9 @@ MemorySegment* BitmapManager::allocate(MemorySegment* segment, size_t bytes) {
 }
 
 void BitmapManager::deallocate(MemorySegment* segment) {
-    statistics.deallocate(segment->get_size());
-
     size_t total_bins = (segment->get_size() + bin_size-1) / bin_size;
+    statistics.deallocate(total_bins * bin_size);
+
     size_t start_bin = segment->get_bin_id();
     size_t end_bin = start_bin + total_bins;
 

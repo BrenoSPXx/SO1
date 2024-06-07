@@ -25,8 +25,8 @@ LinkedListManager::~LinkedListManager() {
 
 // Aloca um bloco de memória de tamanho especificado em bytes
 MemorySegment* LinkedListManager::allocate(MemorySegment* segment, size_t bytes) {
-    statistics.allocate(bytes);
     size_t required_bins = (bytes + bin_size - 1) / bin_size;  // Calcula o número necessário de bins, arredondando para cima
+    statistics.allocate(required_bins * bin_size);
 
     Segment* seg = (Segment*)segment; 
     for (auto node = segments.getHead(); node != nullptr; node = node->next) {
@@ -47,7 +47,9 @@ MemorySegment* LinkedListManager::allocate(MemorySegment* segment, size_t bytes)
 
 // Libera um bloco de memória especificado
 void LinkedListManager::deallocate(MemorySegment* segment) {
-    statistics.deallocate(segment->get_size());
+    size_t required_bins = (segment->get_size() + bin_size - 1) / bin_size;
+    statistics.deallocate(required_bins * bin_size);
+
     auto node = segments.getHead();
     while (node) {
         if (node->data == segment) {
